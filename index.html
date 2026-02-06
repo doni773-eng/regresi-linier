@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Regresi Linier</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        table {
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        table, th, td {
+            border: 1px solid black;
+            padding: 6px 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+
+        #grafik-container {
+            width: 520px;
+            overflow: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        canvas {
+            width: 500px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Perhitungan Regresi Linier</h2>
+
+<label>Data X (pisahkan dengan koma):</label><br>
+<input type="text" id="dataX" placeholder="Contoh: 1,2,3,4,5"><br><br>
+
+<label>Data Y (pisahkan dengan koma):</label><br>
+<input type="text" id="dataY" placeholder="Contoh: 2,3,5,4,6"><br><br>
+
+<button onclick="hitung()">Hitung Regresi</button>
+
+<h3>Tabel Perhitungan</h3>
+<div id="tabel"></div>
+
+<h3>Hasil Regresi</h3>
+<p id="hasil"></p>
+
+<label>Zoom Grafik:</label>
+<input type="range" min="50" max="150" value="100" id="zoomSlider">
+<span id="zoomValue">100%</span>
+
+<br><br>
+
+<div id="grafik-container">
+    <canvas id="grafik"></canvas>
+</div>
+
+<script>
+let chart;
+
+function hitung() {
+    let x = document.getElementById("dataX").value.split(",").map(Number);
+    let y = document.getElementById("dataY").value.split(",").map(Number);
+
+    let n = x.length;
+
+    if (n !== y.length || n < 2) {
+        alert("Regresi linier membutuhkan minimal 2 pasang data.");
+        return;
+    }
+
+    let sumX = 0, sumY = 0, sumX2 = 0, sumXY = 0;
+    let tabelHTML = `
+        <table>
+        <tr>
+            <th>No</th>
+            <th>x</th>
+            <th>y</th>
+            <th>x²</th>
+            <th>xy</th>
+        </tr>
+    `;
+
+    for (let i = 0; i < n; i++) {
+        let x2 = x[i] * x[i];
+        let xy = x[i] * y[i];
+
+        sumX += x[i];
+        sumY += y[i];
+        sumX2 += x2;
+        sumXY += xy;
+
+        tabelHTML += `
+            <tr>
+                <td>${i + 1}</td>
+                <td>${x[i]}</td>
+                <td>${y[i]}</td>
+                <td>${x2}</td>
+                <td>${xy}</td>
+            </tr>
+        `;
+    }
+
+    tabelHTML += `
+        <tr>
+            <th>Σ</th>
+            <th>${sumX}</th>
+            <th>${sumY}</th>
+            <th>${sumX2}</th>
+            <th>${sumXY}</th>
+        </tr>
+        </table>
+    `;
+
+    document.getElementById("tabel").innerHTML = tabelHTML;
+
+    let b = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    let a = (sumY - b * sumX) / n;
+
+    document.getElementById("hasil").innerHTML =
+        "n = " + n + "<br>" +
+        "a = " + a.toFixed(3) + "<br>" +
+        "b = " + b.toFixed(3) + "<br><br>" +
+        "<b>Persamaan regresi:</b><br>" +
+        "y = " + a.toFixed(3) + " + " + b.toFixed(3) + "x";
+
+    let scatterData = x.map((val, i) => ({ x: val, y: y[i] }));
+
+    let xMin = Math.min(...x);
+    let xMax = Math.max(...x);
+
+    let garisRegresi = [
+        { x: xMin, y: a + b * xMin },
+        { x: xMax, y: a + b * xMax }
+    ];
+
+    if (chart) chart.destroy();
+
+    const canvas = document.getElementById("grafik");
+    const ctx = canvas.getContext("2d");
+
+    // 🔥 HD CANVAS FIX
+    const dpr = window.devicePixelRatio || 1;
+    const width = 500;
+    const height = 300;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    chart = new Chart(ctx, {
+        type: "scatter",
+        data: {
+            datasets: [
+                {
+                    label: "Data",
+                    data: scatterData,
+                    backgroundColor: "blue"
+                },
+                {
+                    label: "Garis Regresi",
+                    type: "line",
+                    data: garisRegresi,
+                    borderColor: "red",
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: false,
+            animation: false
+        }
+    });
+}
+
+/* zoom visual (aman, tidak pecah) */
+const slider = document.getElementById("zoomSlider");
+const container = document.getElementById("grafik-container");
+const zoomValue = document.getElementById("zoomValue");
+
+slider.addEventListener("input", function () {
+    let scale = slider.value / 100;
+    container.style.transform = "scale(" + scale + ")";
+    zoomValue.innerText = slider.value + "%";
+});
+</script>
+
+</body>
+</html>
